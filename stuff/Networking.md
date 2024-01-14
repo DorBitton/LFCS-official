@@ -27,10 +27,14 @@
 
 * All network configuration will be stored in `/etc/sysconfig/network-scripts`
 
-* If there is need to change IP configuration of an interface without using `nmtui` remember to shutdown interface, change IP, restart interface
+* Temporarly change IP addr: If there is need to change IP configuration of an interface without using `nmtui` remember to shutdown interface, change IP, restart interface
   * `ip link set eth0 down` Shutdown interface eth0
   * `ip addr add 192.168.0.2/24 dev eth0` Assign IP 192.168.0.2/24 to interface eth0
   * `ip link set eth0 up` Restart interface eth0
+
+* Change IP addr in Ubuntu using netplan:
+  * `netplan get` - Show netplan configuration
+  * netplan configuration file is stored in: `ls /etc/netplan/`, the file is in Yaml format.
 
 ***Hostname & Resolving:***
 
