@@ -78,7 +78,63 @@ References:
 
 * [https://unix.stackexchange.com/questions/449186/what-is-the-usage-of-networkmanager-in-centos-rhel7](https://unix.stackexchange.com/questions/449186/what-is-the-usage-of-networkmanager-in-centos-rhel7)
 
-## Implement packet filtering
+## Start, stop, and check the status of network services
+
+* Network services are controlled as other daemon with `systemctl` command.
+  * `systemctl status servicename`
+  * `systemctl status servicename.type`
+  * Disable/Enable on startup: `systemctl disable/enable servicename.type`
+
+* The `ss` command:
+  * Checking network services: `sudo ss -ltunp`: -l = listening, -t = TCP connections, -u = UDP connections, -n = Numeric values, -p = Processes (Require Root). Quick way to memorize: `-tunlp`
+
+* Checking the Network service after the `ss` command:
+  * `ps pid` \ `sudo lsof -p pid`
+
+* With `netstat` it is possible to list internet port opened by a process.
+  * `yum -y install net-tools`
+  * `netstat -tln` - Show TCP port opened by processes.
+  * `netstat -tunlp` - Show TCP port opened by processes.
+
+## Statically route IP traffic
+
+* `ip route show`
+  * Print route
+  * Alternative command `route -n`
+* `ip route add 192.0.2.1 via 10.0.0.1 [dev interface]`
+  * Add route to 192.0.2.1 through 10.0.0.1. Optionally interface can be specified
+* To make route persistent, create a *route-ifname* file for the interface through which the subnet is accessed, e.g eth0:
+  * `vi /etc/sysconfig/network-scripts/route-eth0`
+  * Add line `192.0.2.1 via 10.0.0.101 dev eth0`
+  * `service network restart` to reload file
+
+* `ip route add 192.0.2.0/24 via 10.0.0.1 [dev ifname]` 
+  * Add a route to subnet 192.0.2.0/24
+
+* `nmcli` -> to work with NetworkManager service.
+
+* To configure system as a router `ip_forward` must be enabled:
+  * `echo 1 > /proc/sys/net/ipv4/ip_forward`
+  * To make configuration persistent
+    * `echo net.ipv4.ip_forward = 1 > /etc/sysctl.d/ipv4.conf`
+    * OR: `echo net.ipv4.ip_forward = 1 > /etc/sysctl.d/99-sysctl.conf`
+
+References:
+
+* [https://my.esecuredata.com/index.php?/knowledgebase/article/2/add-a-static-route-on-centos](https://my.esecuredata.com/index.php?/knowledgebase/article/2/add-a-static-route-on-centos)
+
+## Configuring Bride and Bonding Devices
+
+ # Netplan - Ubuntu
+* Netplan settings files are in: /etc/netplan/
+* Netplan examples are in: '/usr/share/doc/netplan/examples'
+
+'sudo netplan try' - to try the configuration before applying them.
+'ip -c link' - will give us the results.
+
+
+
+## Configure packet filtering
 
 * The firewall is managed by Kernel
 
@@ -126,6 +182,20 @@ References:
   |  filter       |          |  ✓  |  ✓  |  ✓    |      |
   | security      |          |   ✓       |  ✓   |   ✓    |      |
   |    nat (SNAT)           |         |     ✓      |     |       |  ✓    |
+
+
+***UFW:***
+* UFW is the firewall in Ubuntu versions.
+* to check UFW status: 'sudo ufw status'
+* Once we set ufw mode to enabled, it will deny any incoming non ruled traffic.
+* To open up ports we will use: 'sudo ufw allow portNumber' we can also be more specific and add TCP or UDP connection after the port: 'sudo ufw allow 22/tcp'
+* usefull commands:
+  * 'sudo ufw enable / disable'
+  * 'sudo ufw allow / block portNumber'
+  * 'sudo ufw status verbose'
+  * 'sudo ufw allow/deny from ipAddr/24 to any port portNumber' - Allow incoming connection from a certain IP to Any ip on a port number
+  * Rules manipulatin: 'sudo ufw status numbered' , 'sudo ufw delete Number' , 'sudo ufw insert ruleNumber rule'
+  
 
 
 ***Firewalld:***
@@ -225,51 +295,6 @@ References:
 
 * [https://debian-handbook.info/browse/da-DK/stable/sect.firewall-packet-filtering.html](https://debian-handbook.info/browse/da-DK/stable/sect.firewall-packet-filtering.html)
 
-
-## Start, stop, and check the status of network services
-
-* Network services are controlled as other daemon with `systemctl` command.
-  * `systemctl status servicename`
-  * `systemctl status servicename.type`
-  * Disable/Enable on startup: `systemctl disable/enable servicename.type`
-
-* The `ss` command:
-  * Checking network services: `sudo ss -ltunp`: -l = listening, -t = TCP connections, -u = UDP connections, -n = Numeric values, -p = Processes (Require Root). Quick way to memorize: `-tunlp`
-
-* Checking the Network service after the `ss` command:
-  * `ps pid` \ `sudo lsof -p pid`
-
-* With `netstat` it is possible to list internet port opened by a process.
-  * `yum -y install net-tools`
-  * `netstat -tln` - Show TCP port opened by processes.
-  * `netstat -tunlp` - Show TCP port opened by processes.
-
-## Statically route IP traffic
-
-* `ip route show`
-  * Print route
-  * Alternative command `route -n`
-* `ip route add 192.0.2.1 via 10.0.0.1 [dev interface]`
-  * Add route to 192.0.2.1 through 10.0.0.1. Optionally interface can be specified
-* To make route persistent, create a *route-ifname* file for the interface through which the subnet is accessed, e.g eth0:
-  * `vi /etc/sysconfig/network-scripts/route-eth0`
-  * Add line `192.0.2.1 via 10.0.0.101 dev eth0`
-  * `service network restart` to reload file
-
-* `ip route add 192.0.2.0/24 via 10.0.0.1 [dev ifname]` 
-  * Add a route to subnet 192.0.2.0/24
-
-* `nmcli` -> to work with NetworkManager service.
-
-* To configure system as a router `ip_forward` must be enabled:
-  * `echo 1 > /proc/sys/net/ipv4/ip_forward`
-  * To make configuration persistent
-    * `echo net.ipv4.ip_forward = 1 > /etc/sysctl.d/ipv4.conf`
-    * OR: `echo net.ipv4.ip_forward = 1 > /etc/sysctl.d/99-sysctl.conf`
-
-References:
-
-* [https://my.esecuredata.com/index.php?/knowledgebase/article/2/add-a-static-route-on-centos](https://my.esecuredata.com/index.php?/knowledgebase/article/2/add-a-static-route-on-centos)
 
 
 ## Synchronize time using other network peers
