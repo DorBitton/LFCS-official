@@ -64,8 +64,8 @@
 
 Network Manager
 
-* Its purpose is to automatically detect, configure, and connect to a network whether wired or wireless such as VPN, DNS, static routes, addresses, etc which is why you'll see #Configured by NetworkManager in /etc/resolv.conf, for example. Although it will prefer wired connections, it will pick the best known wireless connection and whichever it deems to be the most reliable. It will also switch over to wired automatically if it's there.
-  It's not necessary and many (including me) disable it as most would rather manage their own network settings and don't need it done for them.
+* Its purpose is to automatically detect, configure, and connect to a network whether wired or wireless such as VPN, DNS, static routes, addresses, etc which is why you`ll see #Configured by NetworkManager in /etc/resolv.conf, for example. Although it will prefer wired connections, it will pick the best known wireless connection and whichever it deems to be the most reliable. It will also switch over to wired automatically if it`s there.
+  It`s not necessary and many (including me) disable it as most would rather manage their own network settings and don`t need it done for them.
 * `systemctl stop NetworkManager.service`
 * `systemctl disable NetworkManager.service`
 
@@ -125,16 +125,16 @@ References:
 
 ## Configuring Bride and Bonding Devices
 
- # Netplan - Ubuntu
+# Netplan - Ubuntu
 * Netplan settings files are in: /etc/netplan/
-* Netplan examples are in: '/usr/share/doc/netplan/examples'
+* Netplan examples are in: `/usr/share/doc/netplan/examples`
 
-'sudo netplan try' - to try the configuration before applying them.
-'ip -c link' - will give us the results.
+`sudo netplan try` - to try the configuration before applying them.
+`ip -c link` - will give us the results.
 
 
 
-## Configure packet filtering
+# Configure packet filtering
 
 * The firewall is managed by Kernel
 
@@ -186,21 +186,21 @@ References:
 
 ***UFW:***
 * UFW is the firewall in Ubuntu versions.
-* to check UFW status: 'sudo ufw status'
+* to check UFW status: `sudo ufw status`
 * Once we set ufw mode to enabled, it will deny any incoming non ruled traffic.
-* To open up ports we will use: 'sudo ufw allow portNumber' we can also be more specific and add TCP or UDP connection after the port: 'sudo ufw allow 22/tcp'
+* To open up ports we will use: `sudo ufw allow portNumber` we can also be more specific and add TCP or UDP connection after the port: `sudo ufw allow 22/tcp`
 * usefull commands:
-  * 'sudo ufw enable / disable'
-  * 'sudo ufw allow / block portNumber'
-  * 'sudo ufw status verbose'
-  * 'sudo ufw allow/deny from ipAddr/24 to any port portNumber' - Allow incoming connection from a certain IP to Any ip on a port number
-  * Rules manipulatin: 'sudo ufw status numbered' , 'sudo ufw delete Number' , 'sudo ufw insert ruleNumber rule'
+  * `sudo ufw enable / disable`
+  * `sudo ufw allow / block portNumber`
+  * `sudo ufw status verbose`
+  * `sudo ufw allow/deny from ipAddr/24 to any port portNumber` - Allow incoming connection from a certain IP to Any ip on a port number
+  * Rules manipulatin: `sudo ufw status numbered` , `sudo ufw delete Number` , `sudo ufw insert ruleNumber rule`
   
 
 
 ***Firewalld:***
 
-* firewalld is enabled by default in CentOS and it's idea is to simplify the work with iptables.
+* firewalld is enabled by default in CentOS and it`s idea is to simplify the work with iptables.
 * It works with zone, *public* is default zone
 * The *zone* is applied to an interface
   * The idea is that we can have safe zone, e.g. bound to an internal interface, and unsafe zone, e.g. bound to external interfaces internet facing
@@ -218,7 +218,7 @@ References:
   * `/etc/firewalld/services` where new services are created automatically.
 
 * `firewall-cmd --add-service <service-name>` add service to current configuration
-  * **NOTE**: it isn't a permanent configuration. To make it use: `--permanent`.
+  * **NOTE**: it isn`t a permanent configuration. To make it use: `--permanent`.
 
 * `firewall-cmd --reload` reload firewalld configuration
   * **NOTE**: If a service was added with previous command now it disappeared
@@ -269,7 +269,7 @@ References:
     * `ACCEPT` accept packet
     * `DROP` silently rejected
     * `REJECTED` reject the packet with an ICMP error packet
-    * `LOG` log packet. <u>Evaluation of rules isn't blocked.</u>
+    * `LOG` log packet. <u>Evaluation of rules isn`t blocked.</u>
 
 ***Examples:***
 
@@ -294,6 +294,54 @@ References:
 References:
 
 * [https://debian-handbook.info/browse/da-DK/stable/sect.firewall-packet-filtering.html](https://debian-handbook.info/browse/da-DK/stable/sect.firewall-packet-filtering.html)
+
+
+## Port Redirection and NAT (Network Address Translation) 
+
+* Enable port forwarding: `/etc/sysctl.conf` / `/etc/sysctl.d/99-sysctl.conf`
+* To enable configuration changes: `sudo sysctl -system` -> `sudo sysctl -a | grep forward`
+
+## Implement Reverse Proxies and Load Balancing
+
+* Creating Reverse Proxy, often using NGINX:
+* Install nginx: `sudo apt install nginx`
+* `sudo vim /etc/nginx/sites-available/proxy.conf` - Create configuration file
+* In the configuration file we can make nginx reffer to a different site:
+`
+server {
+  listen 80;
+  location /{
+    proxy_pass http://1.1.1.1;
+    incluse proxy_params;
+  }
+}
+`
+* Activate the settings we defined: Create soft link to the conf file to `/etc/ngins/sites-enabled`: `sudo ln -s /etc/nginx/sites-available/proxy.conf /etc/nginx/sites-enabled/proxy.conf` + disable the default site configuration: `sudo rm /etc/nginx/sites-enabled/default` (also a soft link)
+* Check our config for errors: `sudo nginx -t` -t = test the configuration file
+* To apply settings: `sudo systemctl reload  nginx.service`
+
+
+* Configure Nginx as Load balancer:
+* `sudo vim /etc/nginx/sites-available/lb-conf` - Create configuration file:
+`
+upstream mywebservers{
+  #We can add here the type of loadbalancing, example:
+  least_conn;
+  server 1; #we can add weight: `weight=3;` #we can mark server as inactive: `down;`
+  server 2:8081;
+  Server 3 backup;
+}
+
+  server {
+    listen 80;
+    location /{
+      proxy_pass http://mywebservers;
+    }
+  }
+`
+* Activate the settings we defined: Create soft link to the conf file to `/etc/ngins/sites-enabled`: `sudo ln -s /etc/nginx/sites-available/lb.conf /etc/nginx/sites-enabled/lb.conf` + disable the default site configuration: `sudo rm /etc/nginx/sites-enabled/default` (also a soft link)
+* Check our config for errors: `sudo nginx -t` -t = test the configuration file
+* To apply settings: `sudo systemctl reload  nginx.service`
 
 
 
@@ -324,13 +372,13 @@ References:
     * `chronyc tracking` -> show current status of system clock.
     * `chronyc ntpdata` -> show more info for every server.
 
-* **NOTE**: if some of the commands above doesn't work please refer to this bug [https://bugzilla.redhat.com/show_bug.cgi?id=1574418](https://bugzilla.redhat.com/show_bug.cgi?id=1574418)
+* **NOTE**: if some of the commands above doesn`t work please refer to this bug [https://bugzilla.redhat.com/show_bug.cgi?id=1574418](https://bugzilla.redhat.com/show_bug.cgi?id=1574418)
   * Simple solution: `setenforce 0`
   * Package `selinux-policy-3.13.1-229` should resolve the problem.
 
 **NTP:**
 
-* The old method of synchronization. To enable it Chronyd must be disabled. It's also service.
+* The old method of synchronization. To enable it Chronyd must be disabled. It`s also service.
 * Configuration file `/etc/ntp.conf`
     * `server` - Parameters are servers that are used as source of synchronization.
     * `logfile /var/log/ntp.log` - Specify log file.
